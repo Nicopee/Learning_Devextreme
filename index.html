@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="node_modules/devextreme/dist/css/dx.common.css">
+    <link rel="stylesheet" href="node_modules/devextreme/dist/css/dx.light.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dx-viewport">
+<div id="btn"></div>
+<div class="table-div">
+    <div id="table" style="display: none"></div>
+    <form action="https://cdnjs.cloudflare.com/postdata">
+        <div id="form"></div>
+    </form>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-polyfill/7.4.0/polyfill.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/3.3.1/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.min.js"></script>
+
+<script src="node_modules/jquery/dist/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.6.0/jszip.min.js"></script>
+<script src="node_modules/devextreme/dist/js/dx.all.js"></script>
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.0.0/jspdf.umd.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.9/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+    window.jsPDF = window.jspdf.jsPDF;
+    applyPlugin(window.jsPDF);
+
+
+    let dataSrc = [];
+    let dataGrid = null;
+
+    let store = new DevExpress.data.CustomStore({
+        key: 'id',
+        load: () => {
+            return new Promise((res, rej) => {
+                $.getJSON('http://127.0.0.1:5000/items', (resp, txt, xhr) => {
+                    res(resp)
+                })
+            })
+        },
+        update: (key, values) => {
+            console.log({key, values});
+            return new Promise((res, rej) => {
+                $.ajax({
+                    url: `http://127.0.0.1:5000/items/update/${key}`,
+                    type: "POST",
+                    data: JSON.stringify(values),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    success: (resp, txt, xhr) => {
+                        res(resp);
+                        DevExpress.ui.notify(resp.message, 'success', 600);
+                    }
+                });
+            });
+        },
+    });
+
+    // $(() => {
+    //     $.getJSON('http://127.0.0.1:5000/items', (resp, txt, xhr) => {
+    //         dataSrc = resp;
+    //     })
+    // });
+
+    setTimeout(onDataReady, 100);
+
+    function onDataReady() {
+
+        $('#table').dxDataGrid({
+            dataSource: store,
+            showBorders: true,
+            showColumnLines: true,
+            showRowLines: true,
+            rowAlternationEnabled: true,
+            onContentReady: (e) => {
+                dataGrid = e.component;
+            },
+            headerFilter: {
+                visible: true
+            },
+            export: {
+                enabled: true,
+                allowExportSelectedData: true
+            },
+            editing: {
+                allowUpdating: true,
+                allowAdding: true,
+                allowDeleting: true,
+                mode: 'popup',
+                popup: {
+                    height: 'auto',
+                    width: 600
+                }
+            },
+            selection: {
+                mode: "multiple"
+            },
+            searchPanel: {
+                visible: true
+            },
+            allowColumnResizing: true,
+            columns: [
+                {
+                    type: 'selection',
+
+                },
+                {
+                    dataField: 'name'
+                },
+                {
+                    dataField: 'quantity',
+                    dataType: "number",
+                    format: '#,##0,###'
+                },
+                {
+                    dataField: 'unit_price',
+                    dataType: "number",
+                    format: '#,##0,###',
+                    editorOptions: {
+                        format: '#,##0,###'
+                    }
+                },
+                {
+                    dataField: 'created_at',
+                    dataType: 'datetime',
+                    format: 'dd MMM yy hh:mm a'
+                },
+                {
+                    type: 'buttons',
+                    buttons: [
+                        {
+                            name: 'edit',
+                            icon: 'edit'
+                        },
+                        {
+                            name: 'delete',
+                            icon: 'trash'
+                        },
+                        {
+                            text: 'view',
+                            icon: 'print',
+                            onClick: (e) => console.log(e)
+                        }
+                    ]
+                },
+            ],
+            paging: {
+                pageSize: 10
+            },
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [10, 25, 50]
+            },
+            onToolbarPreparing: (e) => {
+                let btn = {
+                    location: 'after',
+                    widget: 'dxButton',
+                    options: {
+                        icon: 'exportpdf',
+                        onClick: () => {
+                            let doc = new jsPDF();
+                            DevExpress.pdfExporter.exportDataGrid({
+                                jsPDFDocument: doc,
+                                component: dataGrid
+                            }).then(function () {
+                                doc.save('items.pdf');
+                            });
+                        }
+                    }
+                };
+                e.toolbarOptions.items.unshift(btn);
+            }
+        });
+    }
+
+
+    let dxForm = '';
+
+    $('#form').dxForm({
+        colCount: 3,
+        onContentReady: e => {
+            dxForm = e.component;
+        },
+        labelLocation: 'top',
+        items: [
+            {
+                dataType: 'string',
+                dataField: 'first_name',
+                required: true,
+                editorOptions: {},
+                validationRules: [
+                    {
+                        type: 'required',
+                        message: 'first name is required'
+                    }
+                ]
+            },
+            {
+                dataType: 'string',
+                dataField: 'last_name',
+            },
+            {
+                dataField: 'dob',
+                editorType: 'dxDateBox',
+                editorOptions: {
+                    type: 'datetime'
+                }
+            },
+            {
+                editorType: 'dxButton',
+                editorOptions: {
+                    text: 'Submit',
+                    type: 'success',
+                    useSubmitBehavior: false,
+                    onClick: () => {
+                        const {isValid} = dxForm?.validate()
+                        if (isValid) {
+                            const data = dxForm.option('formData')
+                            console.log(data);
+                            $.post('http://127.0.0.1:5000/simple', data, (resp) => console.log(resp))
+                        }
+                    }
+                }
+            }
+        ]
+    })
+</script>
+</body>
+</html>

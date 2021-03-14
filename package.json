@@ -1,0 +1,17 @@
+{
+  "name": "devextreme_project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "dependencies": {
+    "devextreme": "^20.2.5",
+    "jquery": "^3.6.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "amoprocedures",
+  "license": "ISC"
+}
