@@ -12,10 +12,10 @@
 <body class="dx-viewport">
 <div id="btn"></div>
 <div class="table-div">
-    <div id="table" style="display: none"></div>
-    <form action="https://cdnjs.cloudflare.com/postdata">
-        <div id="form"></div>
-    </form>
+    <div id="table" style="display: block"></div>
+    <!--    <form action="https://cdnjs.cloudflare.com/postdata">-->
+    <!--        <div id="form"></div>-->
+    <!--    </form>-->
 </div>
 
 
@@ -63,6 +63,21 @@
                 });
             });
         },
+        insert: (values) => {
+            return new Promise((res, rej) => {
+                $.ajax({
+                    url: 'your-backend-url',
+                    type: 'POST',
+                    contentType: 'json',
+                    data: JSON.stringify(values),
+                    processData: false,
+                    success: function (resp, txt, xhr) {
+                        res(resp)
+                    }
+                })
+            })
+        },
+        remove: (key) => console.log(key)
     });
 
     // $(() => {
@@ -95,7 +110,7 @@
                 allowUpdating: true,
                 allowAdding: true,
                 allowDeleting: true,
-                mode: 'popup',
+                mode: 'batch',
                 popup: {
                     height: 'auto',
                     width: 600
@@ -145,10 +160,27 @@
                             name: 'delete',
                             icon: 'trash'
                         },
+                    ]
+                },
+                {
+                    type: 'buttons',
+                    buttons: [
+
                         {
                             text: 'view',
                             icon: 'print',
-                            onClick: (e) => console.log(e)
+                            template: (elem, e) => {
+                                if (e.row.data.unit_price < 1500) {
+                                    elem.append('<p style="color:red"><i class="dx-icon dx-icon-fullscreen"></i></p>')
+                                } else if (e.row.data.unit_price > 3000) {
+                                    elem.append('<p style="color:red"><i class="dx-icon dx-icon-pdffile"></i></p>')
+                                }
+
+                            },
+                            visible: e => {
+                                console.log(e)
+                                return true
+                            }
                         }
                     ]
                 },
